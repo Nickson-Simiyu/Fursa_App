@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
-import { Text, View, StyleSheet, Image, TextInput, Button, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, View, StyleSheet, Image, TextInput, Button, TouchableOpacity, Alert, Modal, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import { WebView } from 'react-native-webview';
+
+interface DocumentAsset {
+    uri: string;
+    name: string;
+    mimeType: string;
+    size: number;
+}
 
 export default function ProfileScreen() {
     const [profileImage, setProfileImage] = useState<string | null>(null);
     const [resume, setResume] = useState<{ name: string; uri: string } | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [loadingPDF, setLoadingPDF] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
     // Profile fields
-    const [name, setName] = useState("John Doe");
-    const [jobTitle, setJobTitle] = useState("Software Developer");
-    const [location, setLocation] = useState("Mombasa, Kenya");
-    const [bio, setBio] = useState("Passionate developer with 3+ years of experience in mobile and web app development.");
+    const [name, setName] = useState('');
+    const [skills, setSkills] = useState('');
+    const [bio, setBio] = useState('');
 
     // Image Picker Function
     const pickImage = async () => {
@@ -38,13 +48,16 @@ export default function ProfileScreen() {
     // Document Picker for Resume
     const pickResume = async () => {
         const result = await DocumentPicker.getDocumentAsync({
-            type: "application/pdf", // Limit to PDF files; use "*/*" for all file types
+            type: "application/pdf",
             copyToCacheDirectory: true
         });
 
-        if (result.type === "success") {
-            setResume({ name: result.name, uri: result.uri });
-            Alert.alert("Resume Uploaded", `Selected file: ${result.name}`);
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            const selectedFile = result.assets[0] as DocumentAsset; // Type assertion
+            setResume({ name: selectedFile.name, uri: selectedFile.uri });
+            Alert.alert("Resume Uploaded", `Selected file: ${selectedFile.name}`);
+        } else {
+            Alert.alert("Upload Failed", "No file was selected.");
         }
     };
 
@@ -58,6 +71,38 @@ export default function ProfileScreen() {
         setIsEditing(false);
         Alert.alert("Profile Updated", "Your profile has been successfully updated!");
     };
+
+    // Render PDF Viewer Modal
+    const renderPdfModal = () => (
+        <Modal
+            animationType="slide"
+            transparent={false}
+            visible={modalVisible}
+            onRequestClose={() => setModalVisible(false)}
+        >
+            <View style={{ flex: 1 }}>
+                {resume ? (
+                    <>
+                        {loadingPDF && <ActivityIndicator size="large" color="#2a9d8f" style={styles.loader} />}
+                        <WebView
+                            source={{ uri: resume.uri }}
+                            onLoadStart={() => setLoadingPDF(true)}
+                            onLoad={() => setLoadingPDF(false)}
+                            onError={(error) => {
+                                setLoadingPDF(false);
+                                Alert.alert("Error", "Unable to display PDF. Please try again.");
+                                console.error(error);
+                            }}
+                            style={{ flex: 1 }}
+                        />
+                    </>
+                ) : (
+                    <Text style={styles.noResumeText}>No resume available to display.</Text>
+                )}
+                <Button title="Close" onPress={() => setModalVisible(false)} />
+            </View>
+        </Modal>
+    );
 
     return (
         <View style={styles.container}>
@@ -80,34 +125,32 @@ export default function ProfileScreen() {
                         placeholder="Name"
                     />
                     <TextInput
-                        style={styles.input}
-                        value={jobTitle}
-                        onChangeText={setJobTitle}
-                        placeholder="Job Title"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        value={location}
-                        onChangeText={setLocation}
-                        placeholder="Location"
-                    />
-                    <TextInput
                         style={[styles.input, styles.textArea]}
                         value={bio}
                         onChangeText={setBio}
                         placeholder="About Me"
                         multiline
                     />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Enter your skills (e.g., JavaScript, Design)"
+                        value={skills}
+                        onChangeText={setSkills}
+                    />
                     <Button title="Save" onPress={saveProfile} />
                 </>
             ) : (
                 <>
-                    <Text style={styles.name}>{name}</Text>
-                    <Text style={styles.info}>{jobTitle}</Text>
-                    <Text style={styles.info}>{location}</Text>
+                    <TouchableOpacity onPress={toggleEditMode}>
+                        <Text style={styles.sectionTitle}>Edit Profile</Text>
+                    </TouchableOpacity>
                     <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Full name</Text>
+                        <Text style={styles.name}>{name}</Text>
                         <Text style={styles.sectionTitle}>About Me</Text>
                         <Text style={styles.description}>{bio}</Text>
+                        <Text style={styles.sectionTitle}>Skills</Text>
+                        <Text style={styles.info}>{skills}</Text>
                     </View>
                 </>
             )}
@@ -118,7 +161,7 @@ export default function ProfileScreen() {
                 {resume ? (
                     <View style={styles.resumeContainer}>
                         <Text style={styles.resumeText}>Uploaded: {resume.name}</Text>
-                        <TouchableOpacity onPress={() => Alert.alert("Open Resume", `Opening: ${resume.name}`)}>
+                        <TouchableOpacity onPress={() => setModalVisible(true)}>
                             <Text style={styles.viewButton}>View Resume</Text>
                         </TouchableOpacity>
                     </View>
@@ -126,6 +169,7 @@ export default function ProfileScreen() {
                     <Text style={styles.resumeText}>No resume uploaded</Text>
                 )}
                 <Button title="Upload Resume" onPress={pickResume} />
+                {renderPdfModal()}
             </View>
         </View>
     );
@@ -153,6 +197,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 0,
         bottom: 0,
+        alignItems: 'center',
         backgroundColor: '#2a9d8f',
         padding: 6,
         borderRadius: 50,
@@ -218,5 +263,16 @@ const styles = StyleSheet.create({
         color: '#2a9d8f',
         marginTop: 4,
         textDecorationLine: 'underline',
+    },
+    loader: {
+        position: 'absolute',
+        top: '50%',
+        alignSelf: 'center',
+    },
+    noResumeText: {
+        fontSize: 16,
+        color: '#333',
+        textAlign: 'center',
+        marginVertical: 20,
     },
 });
