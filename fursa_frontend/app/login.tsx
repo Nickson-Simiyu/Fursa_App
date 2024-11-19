@@ -3,10 +3,10 @@ import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 
-const BASE_URL = 'http://127.0.0.1:8000/api'; // Replace with your backend URL
+const BASE_URL = 'http://192.168.1.103:8000/api'; // Replace with your backend URL
 
 export default function LoginScreen() {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const router = useRouter();
 
@@ -15,21 +15,22 @@ export default function LoginScreen() {
             const response = await fetch(`${BASE_URL}/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ email, password }), // Send `email` and `password`
             });
-
+    
             if (response.ok) {
                 const data = await response.json();
-                await SecureStore.setItemAsync('authToken', data.token);
-
-                // Save user details locally if needed
-                const { email } = data.user; // Assuming the backend returns email
-                console.log({ username, email });
-
+                const accessToken = data.access_token; // Extract the access token
+    
+                // SecureStore requires string values, so we store the token as-is
+                await SecureStore.setItemAsync('authToken', String(accessToken));
+    
                 Alert.alert('Login Successful', 'You are now logged in.');
-                router.push('/settings'); // Redirect to settings/profile page
+                console.log('Navigating to /sign-up'); // Log for debugging
+                router.push('./(tabs)'); // Navigate after login
             } else {
-                Alert.alert('Login Failed', 'Invalid username or password.');
+                const errorData = await response.json();
+                Alert.alert('Login Failed', errorData.error || 'Invalid email or password.');
             }
         } catch (error) {
             console.error('Error during login:', error);
@@ -41,9 +42,9 @@ export default function LoginScreen() {
         <View style={styles.container}>
             <TextInput
                 style={styles.input}
-                placeholder="Username"
-                value={username}
-                onChangeText={setUsername}
+                placeholder="email"
+                value={email}
+                onChangeText={setEmail}
             />
             <TextInput
                 style={styles.input}

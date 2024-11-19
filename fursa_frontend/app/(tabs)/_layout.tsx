@@ -25,14 +25,6 @@ export default function TabLayout() {
                     ),
                 }} />
             <Tabs.Screen
-                name="Applications"
-                options={{
-                    title: 'Applications',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} color={color} size={24} />
-                    ),
-                }} />
-            <Tabs.Screen
                 name="profile"
                 options={{
                     title: 'Profile',

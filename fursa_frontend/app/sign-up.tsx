@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const BASE_URL = 'http://127.0.0.1:8000/api'; // Replace with your backend URL
+const BASE_URL = 'http://192.168.1.103:8000/api'; // Replace with your backend URL
 
 export default function SignUpScreen() {
     const [username, setUsername] = useState('');
@@ -11,6 +11,11 @@ export default function SignUpScreen() {
     const router = useRouter();
 
     const handleSignUp = async () => {
+        if (!username || !email || !password) {
+            Alert.alert('Validation Error', 'All fields are required.');
+            return;
+        }
+
         try {
             const response = await fetch(`${BASE_URL}/register/`, {
                 method: 'POST',
@@ -20,14 +25,19 @@ export default function SignUpScreen() {
 
             if (response.ok) {
                 Alert.alert('Sign-Up Successful', 'You can now log in.');
-                router.push('/login'); // Redirect to login page
+                router.push('/login');
             } else {
                 const errorData = await response.json();
-                Alert.alert('Sign-Up Failed', errorData.detail || 'Please try again.');
+                const errorMessage =
+                    errorData?.email?.[0] || // Check for email-specific errors
+                    errorData?.username?.[0] || // Check for username-specific errors
+                    errorData?.non_field_errors?.[0] || // General errors
+                    'Sign-Up failed. Please try again.';
+                Alert.alert('Sign-Up Failed', errorMessage);
             }
         } catch (error) {
             console.error('Error during sign-up:', error);
-            Alert.alert('Error', 'An unexpected error occurred.');
+            Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
         }
     };
 

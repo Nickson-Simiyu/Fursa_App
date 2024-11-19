@@ -20,6 +20,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR, 'media'
 
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development; restrict in production
+CORS_ALLOWED_ORIGINS = [
+    'exp://192.168.1.103:8081',
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -53,6 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'profiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
 ]
@@ -65,6 +69,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'fursa_backend.urls'
