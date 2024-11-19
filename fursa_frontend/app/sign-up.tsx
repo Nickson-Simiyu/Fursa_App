@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const BASE_URL = 'http://192.168.1.101:8000/api'; // Replace with your backend URL
+const BASE_URL = 'http://127.0.0.1:8000/api'; // Replace with your backend URL
 
 export default function SignUpScreen() {
     const [username, setUsername] = useState('');

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "expo-secure-store": "^14.0.0",
     "react-native-pdf": "^6.7.5"
   }
 }

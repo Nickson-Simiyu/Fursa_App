@@ -16,6 +16,21 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR, 'media'
+
+CORS_ALLOW_ALL_ORIGINS = True  # Only for development; restrict in production
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Update permissions as needed
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -25,7 +40,7 @@ SECRET_KEY = 'django-insecure-y&3kpif_1y_obc3n^le4_t9loz-8j8o*(@4swo%$1+$31^&2&u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -37,6 +52,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'profiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
