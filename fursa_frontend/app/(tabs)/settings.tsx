@@ -3,34 +3,96 @@ import * as SecureStore from 'expo-secure-store';
 import { View, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 
+const BASE_URL = 'http://192.168.1.103:8000/api'; // Replace with your backend URL
+
 export default function SettingsScreen() {
     const [authenticated, setAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [profileId, setProfileId] = useState(null); // Store profile ID dynamically
     const [name, setName] = useState('');
     const [bio, setBio] = useState('');
     const [skills, setSkills] = useState('');
     const router = useRouter();
 
-    // Check authentication status on mount
+    // Fetch profile data when authenticated
     useEffect(() => {
-        const checkAuth = async () => {
+        const fetchProfile = async () => {
             try {
                 const token = await SecureStore.getItemAsync('authToken');
-                setAuthenticated(!!token);
+                if (!token) {
+                    setAuthenticated(false);
+                    setLoading(false);
+                    return;
+                }
+        
+                setAuthenticated(true);
+        
+                const response = await fetch(`${BASE_URL}/profiles/`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+        
+                if (response.ok) {
+                    const profileData = await response.json();
+        
+                    if (profileData.length > 0) {
+                        const { id, name, bio, skills } = profileData[0]; // Extract ID and other fields
+                        setProfileId(id); // Set the profile ID for subsequent API calls
+                        setName(name || '');
+                        setBio(bio || '');
+                        setSkills(skills || '');
+                    } else {
+                        Alert.alert('Error', 'No profile data found.');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    Alert.alert('Error', errorData.detail || 'Failed to fetch profile data.');
+                }
             } catch (error) {
-                console.error('Error checking authentication:', error);
+                console.error('Error fetching profile:', error);
+                Alert.alert('Error', 'An unexpected error occurred while fetching profile data.');
             } finally {
                 setLoading(false);
             }
         };
-        checkAuth();
+        fetchProfile();
     }, []);
 
     // Save profile function
-    const saveProfile = () => {
-        // Save profile logic
-        console.log({ name, bio, skills });
-        Alert.alert('Profile Saved', 'Your changes have been saved successfully.');
+    const saveProfile = async () => {
+        try {
+            const token = await SecureStore.getItemAsync('authToken');
+            if (!token) {
+                Alert.alert('Error', 'You are not logged in.');
+                return;
+            }
+    
+            if (!profileId) {
+                Alert.alert('Error', 'Profile ID is missing.');
+                return;
+            }
+    
+            const response = await fetch(`${BASE_URL}/profiles/${profileId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ name, bio, skills }),
+            });
+    
+            if (response.ok) {
+                Alert.alert('Profile Saved', 'Your changes have been saved successfully.');
+            } else {
+                const errorData = await response.json();
+                Alert.alert('Save Failed', errorData.detail || 'Please try again.');
+            }
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            Alert.alert('Error', 'An unexpected error occurred while saving your profile.');
+        }
     };
 
     // Logout function
@@ -38,6 +100,7 @@ export default function SettingsScreen() {
         try {
             await SecureStore.deleteItemAsync('authToken');
             setAuthenticated(false);
+            router.push('/login'); // Navigate to login page
             Alert.alert('Logged out successfully!');
         } catch (error) {
             console.error('Error logging out:', error);
@@ -45,7 +108,7 @@ export default function SettingsScreen() {
         }
     };
 
-    // Show loading spinner while checking authentication
+    // Show loading spinner while fetching data
     if (loading) {
         return (
             <View style={styles.container}>
@@ -61,7 +124,7 @@ export default function SettingsScreen() {
                 <>
                     <TextInput
                         style={styles.input}
-                        placeholder="Name"
+                        placeholder="Full-Name"
                         value={name}
                         onChangeText={setName}
                     />
@@ -78,19 +141,19 @@ export default function SettingsScreen() {
                         value={skills}
                         onChangeText={setSkills}
                     />
-                    <Button title="Save" onPress={saveProfile} />
-                    <Button title="Logout" onPress={handleLogout} color="#2a9d8f" />
+                    <Button title="Save" onPress={saveProfile} color="#2a9d8f" />
+                    <Button title="Logout" onPress={handleLogout} color="#ff4d4d" />
                 </>
             ) : (
                 <>
                     <Button
                         title="Login"
-                        onPress={() => router.push('/login')} // Navigate to the login page
+                        onPress={() => router.push('/login')}
                         color="#2a9d8f"
                     />
                     <Button
-                        title="Sign up"
-                        onPress={() => router.push('/sign-up')} // Navigate to the login page
+                        title="Sign Up"
+                        onPress={() => router.push('/sign-up')}
                         color="#2a9d8f"
                     />
                 </>

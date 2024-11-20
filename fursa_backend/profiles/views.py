@@ -3,24 +3,23 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.contrib.auth.models import User
-from .models import UserProfile
-from .serializers import RegisterSerializer, UserSerializer, LoginSerializer
+from .models import Job, UserProfile
+from .serializers import JobSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer, LoginSerializer
 
 class UserProfileViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSerializer
+    serializer_class = UserProfileSerializer  # Correct serializer for UserProfile
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_queryset(self):
-        # Return the profile of the authenticated user
+        # Return only the profile of the authenticated user
         return UserProfile.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         # Associate the profile with the authenticated user
         serializer.save(user=self.request.user)
-
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -57,3 +56,12 @@ class LoginView(APIView):
                 pass
 
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class JobListView(APIView):
+    permission_classes = [AllowAny]  # Publicly accessible
+
+    def get(self, request):
+        jobs = Job.objects.all()  # Retrieve all jobs from the database
+        serializer = JobSerializer(jobs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

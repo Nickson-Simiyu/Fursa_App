@@ -1,108 +1,158 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator, Button } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    Button,
+    StyleSheet,
+    Alert,
+    ActivityIndicator,
+    TouchableOpacity,
+    Image,
+} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from "expo-router"; 
-import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-const BASE_URL = 'http://192.168.1.101:8000/api';
+const BASE_URL = 'http://192.168.1.103:8000/api'; // Replace with your backend URL
 
 export default function ProfileScreen() {
-    const [authenticated, setAuthenticated] = useState(false);
-    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false); // Toggles between view and edit modes
     const [name, setName] = useState('');
     const [bio, setBio] = useState('');
     const [skills, setSkills] = useState('');
-    const [loading, setLoading] = useState(true);
-
+    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [resume, setResume] = useState<string | null>(null);
+    const [profileId, setProfileId] = useState<number | null>(null);
     const router = useRouter();
 
+    // Fetch profile data
     useEffect(() => {
-        const fetchUserProfile = async () => {
+        const fetchProfile = async () => {
             try {
                 const token = await SecureStore.getItemAsync('authToken');
-                if (token) {
-                    setAuthenticated(true);
-                    const response = await fetch(`${BASE_URL}/profile/`, {
-                        method: 'GET',
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    });
-                    if (response.ok) {
-                        const userData = await response.json();
-                        setName(userData.name || 'No Name');
-                        setBio(userData.bio || 'Bio not set');
-                        setSkills(userData.skills || 'No skills added');
-                        setProfileImage(userData.profileImage || null);
+                if (!token) {
+                    Alert.alert('Error', 'You are not logged in.');
+                    router.push('/login');
+                    return;
+                }
+
+                const response = await fetch(`${BASE_URL}/profiles/`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const profileData = await response.json();
+                    if (profileData.length > 0) {
+                        const { id, name, bio, skills, profile_image, resume } = profileData[0];
+                        setProfileId(id);
+                        setName(name || '');
+                        setBio(bio || '');
+                        setSkills(skills || '');
+                        setProfileImage(profile_image || null);
+                        setResume(resume || null);
                     } else {
-                        Alert.alert('Error', 'Failed to fetch profile data.');
+                        Alert.alert('Error', 'No profile found.');
                     }
                 } else {
-                    setAuthenticated(false);
-                    router.push('/settings'); // Navigate to settings
+                    const errorData = await response.json();
+                    Alert.alert('Error', errorData.detail || 'Failed to fetch profile data.');
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
-                Alert.alert('Error', 'An unexpected error occurred.');
+                Alert.alert('Error', 'An unexpected error occurred while fetching your profile.');
             } finally {
                 setLoading(false);
             }
         };
-        fetchUserProfile();
-    }, [router]);
 
-    // Handle image picking
-    const handlePickImage = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 1,
-            });
+        fetchProfile();
+    }, []);
 
-            if (!result.canceled) {
-                const uri = result.assets[0].uri;
-                setProfileImage(uri);
-                await uploadProfileImage(uri);
-            }
-        } catch (error) {
-            console.error('Error selecting image:', error);
-            Alert.alert('Error', 'An error occurred while selecting an image.');
+    // Upload profile image
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setProfileImage(result.assets[0].uri);
         }
     };
 
-    // Upload image to the server
-    const uploadProfileImage = async (uri: string) => {
+    // Upload resume
+    const pickResume = async () => {
+        const result = await DocumentPicker.getDocumentAsync({
+            type: 'application/pdf',
+            copyToCacheDirectory: true,
+        });
+
+        if (result.type === 'success') {
+            setResume(result.uri);
+            Alert.alert('Resume Selected', `Selected file: ${result.name}`);
+        } else {
+            Alert.alert('Upload Failed', 'No file was selected.');
+        }
+    };
+
+    // Save profile
+    const saveProfile = async () => {
         try {
             const token = await SecureStore.getItemAsync('authToken');
-            if (!token) return;
+            if (!token || !profileId) {
+                Alert.alert('Error', 'You are not logged in.');
+                return;
+            }
 
             const formData = new FormData();
-            formData.append('profileImage', {
-                uri,
-                name: 'profile.jpg',
-                type: 'image/jpeg',
-            });
+            formData.append('name', name);
+            formData.append('bio', bio);
+            formData.append('skills', skills);
 
-            const response = await fetch(`${BASE_URL}/profile/upload/`, {
-                method: 'POST',
+            if (profileImage) {
+                const fileType = profileImage.split('.').pop();
+                formData.append('profile_image', {
+                    uri: profileImage,
+                    name: `profile.${fileType}`,
+                    type: `image/${fileType}`,
+                } as any);
+            }
+
+            if (resume) {
+                const fileType = resume.split('.').pop();
+                formData.append('resume', {
+                    uri: resume,
+                    name: `resume.${fileType}`,
+                    type: 'application/pdf',
+                } as any);
+            }
+
+            const response = await fetch(`${BASE_URL}/profiles/${profileId}/`, {
+                method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
                 },
                 body: formData,
             });
 
             if (response.ok) {
-                Alert.alert('Success', 'Profile image updated successfully.');
+                Alert.alert('Profile Updated', 'Your profile has been updated successfully.');
+                setIsEditing(false); // Switch to view mode after saving
             } else {
-                Alert.alert('Error', 'Failed to upload profile image.');
+                const errorData = await response.json();
+                Alert.alert('Update Failed', errorData.detail || 'Please try again.');
             }
         } catch (error) {
-            console.error('Error uploading profile image:', error);
-            Alert.alert('Error', 'An error occurred during the upload.');
+            console.error('Error saving profile:', error);
+            Alert.alert('Error', 'An unexpected error occurred while saving your profile.');
         }
     };
 
@@ -114,60 +164,102 @@ export default function ProfileScreen() {
         );
     }
 
-    return authenticated ? (
+    return (
         <View style={styles.container}>
-            <View style={styles.imageContainer}>
-                <Image
-                    style={styles.profileImage}
-                    source={profileImage ? { uri: profileImage } : require('../../assets/images/splash.png')}
-                />
-                <TouchableOpacity style={styles.editIcon} onPress={handlePickImage}>
-                    <MaterialIcons name="camera-alt" size={24} color="white" />
-                </TouchableOpacity>
-            </View>
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.bio}>{bio}</Text>
-            <Text style={styles.skills}>{skills}</Text>
-            <Button title="Edit Profile" onPress={() => router.push('/settings')} />
+            {isEditing ? (
+                <>
+                    <TouchableOpacity onPress={pickImage}>
+                        <Image
+                            source={
+                                profileImage
+                                    ? { uri: profileImage }
+                                    : require('../../assets/images/splash.png')
+                            }
+                            style={styles.profileImage}
+                        />
+                    </TouchableOpacity>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Name"
+                        value={name}
+                        onChangeText={setName}
+                    />
+                    <TextInput
+                        style={[styles.input, styles.textArea]}
+                        placeholder="Bio"
+                        value={bio}
+                        onChangeText={setBio}
+                        multiline
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Skills"
+                        value={skills}
+                        onChangeText={setSkills}
+                    />
+                    <TouchableOpacity onPress={pickResume}>
+                        <Text style={styles.uploadButton}>Upload Resume</Text>
+                    </TouchableOpacity>
+                    <Button title="Save Profile" onPress={saveProfile} color="#2a9d8f" />
+                </>
+            ) : (
+                <>
+                    <TouchableOpacity onPress={() => setIsEditing(true)}>
+                        <Image
+                            source={
+                                profileImage
+                                    ? { uri: profileImage }
+                                    : require('../../assets/images/splash.png')
+                            }
+                            style={styles.profileImage}
+                        />
+                    </TouchableOpacity>
+                    <Text style={styles.text}>Name: {name}</Text>
+                    <Text style={styles.text}>Bio: {bio}</Text>
+                    <Text style={styles.text}>Skills: {skills}</Text>
+                    {resume && (
+                        <Text style={styles.text}>Resume: {resume.split('/').pop()}</Text>
+                    )}
+                    <Button title="Edit Profile" onPress={() => setIsEditing(true)} color="#2a9d8f" />
+                </>
+            )}
         </View>
-    ) : null;
+    );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
         padding: 20,
-    },
-    imageContainer: {
-        position: 'relative',
+        justifyContent: 'center',
     },
     profileImage: {
         width: 100,
         height: 100,
         borderRadius: 50,
+        alignSelf: 'center',
+        marginBottom: 20,
     },
-    editIcon: {
-        position: 'absolute',
-        right: 0,
-        bottom: 0,
-        backgroundColor: '#2a9d8f',
-        padding: 6,
-        borderRadius: 50,
+    input: {
+        width: '100%',
+        padding: 10,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        marginBottom: 10,
     },
-    name: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: 10,
+    textArea: {
+        height: 80,
+        textAlignVertical: 'top',
     },
-    bio: {
+    uploadButton: {
+        color: '#2a9d8f',
+        textAlign: 'center',
+        marginVertical: 10,
+        textDecorationLine: 'underline',
+    },
+    text: {
         fontSize: 16,
-        color: '#555',
-        marginVertical: 8,
-    },
-    skills: {
-        fontSize: 16,
-        color: '#555',
+        marginVertical: 5,
     },
 });

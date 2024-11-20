@@ -11,3 +11,13 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
+
+class Job(models.Model):
+    title = models.CharField(max_length=100)
+    company = models.CharField(max_length=100)
+    description = models.TextField()
+    requirements = models.TextField()
+    location = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.title
