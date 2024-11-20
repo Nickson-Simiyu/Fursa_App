@@ -5,8 +5,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.contrib.auth.models import User
-from .models import Job, UserProfile
-from .serializers import JobSerializer, RegisterSerializer, UserProfileSerializer, UserSerializer, LoginSerializer
+from .models import Job, Skill, UserProfile
+from .serializers import JobSerializer, RegisterSerializer, SkillSerializer, UserProfileSerializer, UserSerializer, LoginSerializer
+
+class SkillViewSet(viewsets.ModelViewSet):
+    queryset = Skill.objects.all()
+    serializer_class = SkillSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer  # Correct serializer for UserProfile

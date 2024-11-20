@@ -1,12 +1,44 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Job, UserProfile
+from .models import Job, Skill, UserProfile
+
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['id', 'name']
 
 # Serializer for UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
+    skills = SkillSerializer(many=True, read_only=True)  # Fetch associated skills
+    skill_ids = serializers.PrimaryKeyRelatedField(  # Allow adding skills by ID
+        queryset=Skill.objects.all(),
+        many=True,
+        write_only=True,
+        source='skills'
+    )
     class Meta:
         model = UserProfile
         fields = ['id', 'name', 'bio', 'skills', 'profile_image', 'resume']
+
+    def validate_skills(self, value):
+        # Optional: Validate skill entries
+        predefined_skills = ["Python", "React", "JavaScript", "Django", "Flutter"]
+        for skill in value:
+            if skill not in predefined_skills:
+                raise serializers.ValidationError(f"{skill} is not a valid skill.")
+        return value
+
+    def update(self, instance, validated_data):
+        # Save skills as a comma-separated string
+        if "skills" in validated_data:
+            validated_data["skills"] = ",".join(validated_data["skills"])
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        # Convert the comma-separated string back to a list for the API response
+        representation = super().to_representation(instance)
+        representation["skills"] = instance.skills.split(",") if instance.skills else []
+        return representation
 
 # Serializer for User with Profile integration
 class UserSerializer(serializers.ModelSerializer):
