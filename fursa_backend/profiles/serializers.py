@@ -16,9 +16,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         write_only=True,
         source='skills'
     )
+
     class Meta:
         model = UserProfile
-        fields = ['id', 'name', 'bio', 'skills', 'profile_image', 'resume']
+        fields = ['id', 'name', 'bio', 'skills', 'skill_ids', 'profile_image', 'resume']  # Include 'skill_ids'
 
     def validate_skills(self, value):
         # Optional: Validate skill entries
@@ -29,16 +30,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        # Save skills as a comma-separated string
+        # Handle updating skills
         if "skills" in validated_data:
-            validated_data["skills"] = ",".join(validated_data["skills"])
+            skills = validated_data.pop('skills')
+            instance.skills.set(skills)
         return super().update(instance, validated_data)
 
-    def to_representation(self, instance):
-        # Convert the comma-separated string back to a list for the API response
-        representation = super().to_representation(instance)
-        representation["skills"] = instance.skills.split(",") if instance.skills else []
-        return representation
 
 # Serializer for User with Profile integration
 class UserSerializer(serializers.ModelSerializer):

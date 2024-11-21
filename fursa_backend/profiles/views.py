@@ -13,6 +13,11 @@ class SkillViewSet(viewsets.ModelViewSet):
     serializer_class = SkillSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def list(self, request, *args, **kwargs):
+        skills = self.get_queryset()
+        serializer = self.get_serializer(skills, many=True)
+        return Response(serializer.data)
+
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer  # Correct serializer for UserProfile
     permission_classes = [permissions.IsAuthenticated]
