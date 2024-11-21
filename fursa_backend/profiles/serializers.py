@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Job, Skill, UserProfile
+from .models import Application, Job, Skill, UserProfile
 
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
@@ -84,3 +84,13 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = ['id', 'title', 'company', 'description', 'requirements', 'location']
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ['id', 'job', 'cover_letter', 'resume', 'applied_on']
+        read_only_fields = ['applied_on']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Application.objects.create(user=user, **validated_data)

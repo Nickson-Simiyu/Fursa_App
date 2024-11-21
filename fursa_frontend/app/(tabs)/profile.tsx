@@ -24,6 +24,8 @@ export default function ProfileScreen() {
     const [name, setName] = useState('');
     const [bio, setBio] = useState('');
     const [skills, setSkills] = useState<string[]>([]);
+    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [resume, setResume] = useState<string | null>(null);
     const [profileId, setProfileId] = useState<number | null>(null);
     const router = useRouter();
 
@@ -46,11 +48,13 @@ export default function ProfileScreen() {
 
                 if (profileResponse.ok) {
                     const profileData = await profileResponse.json();
-                    const { id, name, bio, skills } = profileData[0];
+                    const { id, name, bio, skills, profile_image, resume } = profileData[0];
                     setProfileId(id);
                     setName(name || '');
                     setBio(bio || '');
                     setSkills(skills.map((skill: any) => skill.id));
+                    setProfileImage(profile_image || null);
+                    setResume(resume || null);
                 } else {
                     Alert.alert('Error', 'Failed to fetch profile.');
                 }
@@ -72,6 +76,31 @@ export default function ProfileScreen() {
         fetchData();
     }, []);
 
+    // Upload profile image
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+        if (!result.canceled) {
+            setProfileImage(result.assets[0].uri);
+        }
+    };
+
+    const pickResume = async () => {
+        const result = await DocumentPicker.getDocumentAsync({
+            type: 'application/pdf',
+        });
+        if (result.type === 'success') {
+            setResume(result.uri);
+            Alert.alert('Resume Selected', `Selected file: ${result.name}`);
+        } else {
+            Alert.alert('Upload Failed', 'No file was selected.');
+        }
+    };
+
     const saveProfile = async () => {
         try {
             const token = await SecureStore.getItemAsync('authToken');
@@ -79,11 +108,34 @@ export default function ProfileScreen() {
                 Alert.alert('Error', 'You are not logged in.');
                 return;
             }
+            
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('bio', bio);
+            formData.append('skill_ids', JSON.stringify(skills));
+
+            if (profileImage) {
+                const fileType = profileImage.split('.').pop();
+                formData.append('profile_image', {
+                    uri: profileImage,
+                    name: `profile.${fileType}`,
+                    type: `image/${fileType}`,
+                } as any);
+            }
+
+            if (resume) {
+                const fileType = resume.split('.').pop();
+                formData.append('resume', {
+                    uri: resume,
+                    name: `resume.${fileType}`,
+                    type: 'application/pdf',
+                } as any);
+            }
 
             const response = await fetch(`${BASE_URL}/profiles/${profileId}/`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ name, bio, skill_ids: skills }),
+                body: JSON.stringify(formData),
             });
 
             if (response.ok) {
@@ -110,6 +162,12 @@ export default function ProfileScreen() {
         <View style={styles.container}>
             {isEditing ? (
                 <>
+                    <TouchableOpacity onPress={pickImage}>
+                        <Image
+                            source={profileImage ? { uri: profileImage } : require('../../assets/images/splash.png')}
+                            style={styles.profileImage}
+                        />
+                    </TouchableOpacity>
                     <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Name" />
                     <TextInput style={styles.textArea} value={bio} onChangeText={setBio} placeholder="Bio" />
                     <MultiSelect
@@ -120,10 +178,17 @@ export default function ProfileScreen() {
                         selectText="Select Skills"
                         searchInputPlaceholderText="Search Skills..."
                     />
+                    <TouchableOpacity onPress={pickResume}>
+                        <Text style={styles.uploadButton}>Upload Resume</Text>
+                    </TouchableOpacity>
                     <Button title="Save" onPress={saveProfile} />
                 </>
             ) : (
                 <>
+                    <Image
+                        source={profileImage ? { uri: profileImage } : require('../../assets/images/splash.png')}
+                        style={styles.profileImage}
+                    />
                     <Text>Name: {name}</Text>
                     <Text>Bio: {bio}</Text>
                     <Text>Skills: {availableSkills.filter(skill => skills.includes(skill.id)).map(skill => skill.name).join(', ')}</Text>

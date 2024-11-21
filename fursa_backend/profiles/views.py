@@ -1,12 +1,12 @@
-from rest_framework import viewsets, permissions, status, generics
+from rest_framework import viewsets, permissions, status
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.contrib.auth.models import User
-from .models import Job, Skill, UserProfile
-from .serializers import JobSerializer, RegisterSerializer, SkillSerializer, UserProfileSerializer, UserSerializer, LoginSerializer
+from .models import Application, Job, Skill, UserProfile
+from .serializers import JobSerializer, RegisterSerializer, SkillSerializer, UserProfileSerializer, LoginSerializer, ApplicationSerializer
 
 class SkillViewSet(viewsets.ModelViewSet):
     queryset = Skill.objects.all()
@@ -75,3 +75,13 @@ class JobListView(APIView):
         jobs = Job.objects.all()  # Retrieve all jobs from the database
         serializer = JobSerializer(jobs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class ApplicationViewSet(viewsets.ModelViewSet):
+    queryset = Application.objects.all()
+    serializer_class = ApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Only allow users to view their applications
+        return self.queryset.filter(user=self.request.user)
