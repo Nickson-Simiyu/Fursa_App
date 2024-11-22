@@ -2,10 +2,10 @@
 
 Fursa App is a mobile application designed to help users discover job opportunities, apply for them seamlessly, and manage their career applications—all in one place. Built using **React Native** for the frontend and **Django REST Framework** for the backend, Fursa App is the perfect project to showcase mobile and web development skills.
 
-![alt text](<WhatsApp Image 2024-11-22 at 20.56.46.jpeg>)
-![alt text](<WhatsApp Image 2024-11-22 at 20.56.46 (2).jpeg>)
-![alt text](<WhatsApp Image 2024-11-22 at 20.56.46 (1).jpeg>)
-![alt text](<WhatsApp Image 2024-11-22 at 20.56.45.jpeg>)
+![alt text](<fursa_frontend/assets/images/WhatsApp Image 2024-11-22 at 20.56.45.jpeg>)
+![alt text](<fursa_frontend/assets/images/WhatsApp Image 2024-11-22 at 20.56.46 (1).jpeg>)
+![alt text](<fursa_frontend/assets/images/WhatsApp Image 2024-11-22 at 20.56.46 (2).jpeg>)
+![alt text](<fursa_frontend/assets/images/WhatsApp Image 2024-11-22 at 20.56.46.jpeg>)
 ---
 
 ## **Features**
