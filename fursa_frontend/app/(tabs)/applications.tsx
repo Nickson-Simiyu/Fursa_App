@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = "http://192.168.1.103:8000/api"; // Replace with your backend URL
+const BASE_URL = "http://192.168.1.103:8000/api";
 
 export default function ApplicationsScreen() {
     const [applications, setApplications] = useState([]);
@@ -53,12 +53,18 @@ export default function ApplicationsScreen() {
             <Text style={styles.title}>Your Applications</Text>
             <FlatList
                 data={applications}
-                keyExtractor={(item) => item.id.toString()} // Use application ID as key
+                keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.applicationCard}>
                         <Text style={styles.jobTitle}>{item.job.title}</Text>
                         <Text style={styles.company}>{item.job.company}</Text>
+                        <Text style={styles.location}>Location: {item.job.location}</Text>
+                        <Text style={styles.coverLetter}>Cover Letter: {item.cover_letter || 'N/A'}</Text>
+                        <Text style={styles.resume}>
+                            Resume: {item.resume ? item.resume.split('/').pop() : 'N/A'}
+                        </Text>
                         <Text style={styles.status}>Status: {item.status}</Text>
+                        <Text style={styles.date}>Applied On: {new Date(item.created_at).toDateString()}</Text>
                     </View>
                 )}
                 ListEmptyComponent={
@@ -67,6 +73,7 @@ export default function ApplicationsScreen() {
             />
         </View>
     );
+    
 }
 
 const styles = StyleSheet.create({
@@ -104,6 +111,25 @@ const styles = StyleSheet.create({
     status: {
         fontSize: 14,
         color: "#777",
+        marginTop: 5,
+    },
+    location: {
+        fontSize: 14,
+        color: "#555",
+    },
+    coverLetter: {
+        fontSize: 14,
+        color: "#555",
+        marginTop: 5,
+    },
+    resume: {
+        fontSize: 14,
+        color: "#555",
+        marginTop: 5,
+    },
+    date: {
+        fontSize: 12,
+        color: "#888",
         marginTop: 5,
     },
     emptyText: {

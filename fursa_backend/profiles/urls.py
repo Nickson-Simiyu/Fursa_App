@@ -1,4 +1,6 @@
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from .views import ApplicationViewSet, JobListView, LoginView, SkillViewSet, UserProfileViewSet, RegisterView
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -16,3 +18,6 @@ urlpatterns = [
     path('profiles/upload/', UserProfileViewSet.as_view({'post': 'upload_profile_image'}), name='upload_profile_image'),
     path('', include(router.urls)),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

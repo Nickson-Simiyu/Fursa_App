@@ -31,28 +31,38 @@ export default function JobDetailsScreen() {
     
             console.log("Document Picker Result:", result); // Debug log
     
-            if (result.type === "success") {
-                const file = result.assets ? result.assets[0] : result;
-            
-                // Validate if the file exists and is a PDF
-                const fileInfo = await FileSystem.getInfoAsync(file.uri);
-                if (fileInfo.exists && file.mimeType === "application/pdf") {
-                    setResume({
-                        uri: file.uri,
-                        name: file.name,
-                        type: file.mimeType || "application/pdf",
-                    });
-                    Alert.alert("Resume Selected", `Selected file: ${file.name}`);
-                } else {
-                    Alert.alert("Error", "Please select a valid PDF file.");
-                    console.error("File does not exist at URI:", file.uri);
-                }
+            let file;
+            if (result.assets && result.assets.length > 0) {
+                // Handle structure with `assets`
+                file = result.assets[0];
+            } else if (result.type === "success") {
+                // Handle structure without `assets`
+                file = result;
+            } else {
+                Alert.alert("No file selected", "Please select a file to upload.");
+                return;
+            }
+    
+            // Validate file existence and type
+            const fileInfo = await FileSystem.getInfoAsync(file.uri);
+            if (fileInfo.exists && file.mimeType === "application/pdf") {
+                setResume({
+                    uri: file.uri,
+                    name: file.name,
+                    type: file.mimeType || "application/pdf",
+                });
+                Alert.alert("Resume Selected", `Selected file: ${file.name}`);
+            } else {
+                Alert.alert("Error", "Please select a valid PDF file.");
+                console.error("File does not exist at URI or is not a PDF:", file.uri);
             }
         } catch (error) {
             console.error("Error selecting resume:", error);
             Alert.alert("Error", "An unexpected error occurred while selecting a resume.");
         }
     };
+    
+
 
 
     const handleApply = async (jobId) => {
@@ -69,33 +79,33 @@ export default function JobDetailsScreen() {
             }
     
             const formData = new FormData();
-            formData.append("job", jobId);
-            formData.append("cover_letter", coverLetter);
+            formData.append("job", jobId); // Add job ID
+            formData.append("cover_letter", coverLetter); // Add cover letter
             formData.append("resume", {
                 uri: resume.uri,
                 name: resume.name,
-                type: resume.type,
+                type: resume.type, // Correct MIME type
             });
     
             console.log("FormData Contents:", {
                 job: jobId,
                 cover_letter: coverLetter,
                 resume,
-            });
+            }); // Debug log
     
             const response = await fetch(`${BASE_URL}/applications/`, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`, // Include token
                 },
-                body: formData,
+                body: formData, // Attach FormData
             });
     
             if (response.ok) {
                 Alert.alert("Application Successful", "You have applied for this job.");
             } else {
                 const errorData = await response.json();
-                console.error("Error Response:", errorData);
+                console.error("Error Response:", errorData); // Debug log
                 Alert.alert("Error", errorData.detail || "Failed to apply for this job.");
             }
         } catch (error) {
@@ -103,6 +113,7 @@ export default function JobDetailsScreen() {
             Alert.alert("Error", "An unexpected error occurred.");
         }
     };
+    
     
 
     return (

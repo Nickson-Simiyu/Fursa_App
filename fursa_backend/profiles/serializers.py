@@ -91,6 +91,17 @@ class ApplicationSerializer(serializers.ModelSerializer):
         fields = ['id', 'job', 'user', 'cover_letter', 'resume', 'applied_at']
         read_only_fields = ['user', 'applied_at']
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Include nested job details
+        representation['job'] = {
+            'id': instance.job.id,
+            'title': instance.job.title,
+            'company': instance.job.company,
+            'location': instance.job.location,
+        }
+        return representation
+
     def create(self, validated_data):
         # Automatically assign the authenticated user
         validated_data['user'] = self.context['request'].user
