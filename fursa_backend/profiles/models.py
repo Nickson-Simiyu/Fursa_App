@@ -14,7 +14,6 @@ class UserProfile(models.Model):
     bio = models.TextField(blank=True)
     skills = models.ManyToManyField(Skill, related_name="users", blank=True)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
-    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
@@ -34,7 +33,7 @@ class Application(models.Model):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='applications')
     cover_letter = models.TextField(blank=True)
     resume = models.FileField(upload_to='resumes/')
-    applied_on = models.DateTimeField(auto_now_add=True)
+    applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.job.title}"

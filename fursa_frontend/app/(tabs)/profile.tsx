@@ -14,6 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import MultiSelect from 'react-native-multiple-select';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const BASE_URL = 'http://192.168.1.103:8000/api';
 
@@ -25,7 +26,6 @@ export default function ProfileScreen() {
     const [bio, setBio] = useState('');
     const [skills, setSkills] = useState<string[]>([]);
     const [profileImage, setProfileImage] = useState<string | null>(null);
-    const [resume, setResume] = useState<string | null>(null);
     const [profileId, setProfileId] = useState<number | null>(null);
     const router = useRouter();
 
@@ -54,7 +54,6 @@ export default function ProfileScreen() {
                     setBio(bio || '');
                     setSkills(skills.map((skill: any) => skill.id));
                     setProfileImage(profile_image || null);
-                    setResume(resume || null);
                 } else {
                     Alert.alert('Error', 'Failed to fetch profile.');
                 }
@@ -89,18 +88,6 @@ export default function ProfileScreen() {
         }
     };
 
-    const pickResume = async () => {
-        const result = await DocumentPicker.getDocumentAsync({
-            type: 'application/pdf',
-        });
-        if (result.type === 'success') {
-            setResume(result.uri);
-            Alert.alert('Resume Selected', `Selected file: ${result.name}`);
-        } else {
-            Alert.alert('Upload Failed', 'No file was selected.');
-        }
-    };
-
     const saveProfile = async () => {
         try {
             const token = await SecureStore.getItemAsync('authToken');
@@ -120,15 +107,6 @@ export default function ProfileScreen() {
                     uri: profileImage,
                     name: `profile.${fileType}`,
                     type: `image/${fileType}`,
-                } as any);
-            }
-
-            if (resume) {
-                const fileType = resume.split('.').pop();
-                formData.append('resume', {
-                    uri: resume,
-                    name: `resume.${fileType}`,
-                    type: 'application/pdf',
                 } as any);
             }
 
@@ -162,12 +140,15 @@ export default function ProfileScreen() {
         <View style={styles.container}>
             {isEditing ? (
                 <>
-                    <TouchableOpacity onPress={pickImage}>
+                    <View style={styles.imageContainer}>
                         <Image
-                            source={profileImage ? { uri: profileImage } : require('../../assets/images/splash.png')}
                             style={styles.profileImage}
+                            source={profileImage ? { uri: profileImage } : require('../../assets/images/splash.png')}
                         />
-                    </TouchableOpacity>
+                        <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+                            <MaterialIcons name="camera-alt" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
                     <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Name" />
                     <TextInput style={styles.textArea} value={bio} onChangeText={setBio} placeholder="Bio" />
                     <MultiSelect
@@ -178,9 +159,6 @@ export default function ProfileScreen() {
                         selectText="Select Skills"
                         searchInputPlaceholderText="Search Skills..."
                     />
-                    <TouchableOpacity onPress={pickResume}>
-                        <Text style={styles.uploadButton}>Upload Resume</Text>
-                    </TouchableOpacity>
                     <Button title="Save" onPress={saveProfile} />
                 </>
             ) : (
@@ -205,12 +183,23 @@ const styles = StyleSheet.create({
         padding: 20,
         justifyContent: 'center',
     },
+    imageContainer: {
+        position: 'relative',
+    },
     profileImage: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        alignSelf: 'center',
         marginBottom: 20,
+        backgroundColor: '#e1e1e1',
+    },
+    editIcon: {
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#2a9d8f',
+        padding: 6,
+        borderRadius: 50,
     },
     input: {
         width: '100%',

@@ -78,10 +78,37 @@ class JobListView(APIView):
     
 
 class ApplicationViewSet(viewsets.ModelViewSet):
+    parser_classes = [MultiPartParser, FormParser]
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Only allow users to view their applications
+        # Restrict to applications of the authenticated user
         return self.queryset.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        job_id = request.data.get("job")  # Get job ID from the request payload
+
+        if not job_id:
+            return Response({"error": "Job ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Fetch the job object
+            job = Job.objects.get(id=job_id)
+
+            # Check if the user has already applied for the job
+            if Application.objects.filter(user=user, job=job).exists():
+                return Response(
+                    {"message": "You have already applied for this job."},
+                    status=status.HTTP_200_OK,
+                )
+
+            # Create the application
+            application = Application.objects.create(user=user, job=job)
+            serializer = self.get_serializer(application)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Job.DoesNotExist:
+            return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)

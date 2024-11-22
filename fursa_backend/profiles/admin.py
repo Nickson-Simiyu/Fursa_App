@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Job, Skill, UserProfile
+from .models import Application, Job, Skill, UserProfile
 
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'name', 'display_skills', 'bio')  # Replace `skills` with a custom method
@@ -13,3 +13,4 @@ class UserProfileAdmin(admin.ModelAdmin):
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Skill)
 admin.site.register(Job)
+admin.site.register(Application)

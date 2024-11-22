@@ -56,11 +56,6 @@ export default function SettingsScreen() {
                         color="#2a9d8f"
                     />
                     <Button
-                        title="App Preferences"
-                        onPress={() => router.push('/preferences')} // Navigate to a future settings page
-                        color="#2a9d8f"
-                    />
-                    <Button
                         title="Logout"
                         onPress={handleLogout}
                         color="#ff4d4d"

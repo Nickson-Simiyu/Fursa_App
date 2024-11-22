@@ -19,7 +19,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'name', 'bio', 'skills', 'skill_ids', 'profile_image', 'resume']  # Include 'skill_ids'
+        fields = ['id', 'name', 'bio', 'skills', 'skill_ids', 'profile_image']
 
     def validate_skills(self, value):
         # Optional: Validate skill entries
@@ -88,9 +88,10 @@ class JobSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ['id', 'job', 'cover_letter', 'resume', 'applied_on']
-        read_only_fields = ['applied_on']
+        fields = ['id', 'job', 'user', 'cover_letter', 'resume', 'applied_at']
+        read_only_fields = ['user', 'applied_at']
 
     def create(self, validated_data):
-        user = self.context['request'].user
-        return Application.objects.create(user=user, **validated_data)
+        # Automatically assign the authenticated user
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
